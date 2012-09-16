@@ -47,10 +47,9 @@ int http_callback(void *cls,
 	{
 		result = webcli->resolveCommand(std::string(query));
 	}
-	std::cerr<<query<<" -> "<<result<<std::endl;
-	
+
 	response = MHD_create_response_from_buffer(0, NULL, MHD_RESPMEM_PERSISTENT);
-	if(!response) { std::cerr<<1<<std::endl; return MHD_NO; }
+	if(!response) { return MHD_NO; }
 
 	if(MHD_add_response_header(response, "Location", result.c_str()) == MHD_NO)
 	{
