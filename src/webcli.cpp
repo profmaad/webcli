@@ -4,7 +4,7 @@
 
 # include "webcli.hpp"
 
-WebCLI::WebCLI(const char *commands_file)
+WebCLI::WebCLI(const char *commands_file, bool echo) : echo(echo)
 {
 	loadCommands(commands_file);
 }
@@ -42,6 +42,10 @@ std::string WebCLI::resolveCommand(const std::string &string) const
 			return (*it).second->resolve(arg);
 		}
 		else { return std::string(); }
+	}
+	else if(echo)
+	{
+		return string;
 	}
 	else { return std::string(); }
 }
