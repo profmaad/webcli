@@ -4,6 +4,7 @@
 # include <cstring>
 
 # include <unistd.h>
+# include <wordexp.h>
 
 # include <sys/types.h>
 # include <sys/select.h>
@@ -93,7 +94,10 @@ int main(int argc, char**argv)
 		}
 	}
 
-	WebCLI webcli(commands_file, echo);
+	wordexp_t exp_result;
+	wordexp(commands_file, &exp_result, 0);	
+
+	WebCLI webcli(exp_result.we_wordv[0], echo);
 
 	if(enable_http)
 	{
