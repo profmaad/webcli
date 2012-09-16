@@ -1,7 +1,17 @@
 # include <iostream>
 # include <cstdlib>
+# include <cstdio>
+# include <cstring>
 
 # include <unistd.h>
+
+# include <sys/types.h>
+# include <sys/select.h>
+# include <sys/socket.h>
+# include <arpa/inet.h>
+# include <netinet/in.h>
+
+# include <microhttpd.h>
 
 # include "webcli.hpp"
 
@@ -13,6 +23,44 @@ void print_usage(const char *program_name)
 	std::cerr<<"\t -e: if no command was given, just echo back the request" << std::endl;
 	std::cerr<<"\t -p PORT: use PORT for http daemon" << std::endl;
 	std::cerr<<"\t -c FILE: read commadns from FILE" << std::endl;
+}
+
+int http_callback(void *cls,
+		  MHD_Connection *connection,
+		  const char *url,
+		  const char *method, const char *version,
+		  const char *upload_data, size_t *upload_data_size,
+		  void **con_cls)
+{
+	WebCLI *webcli = (WebCLI*)cls;
+	MHD_Response *response;
+	int return_value;
+
+	const char *query = MHD_lookup_connection_value(connection, MHD_GET_ARGUMENT_KIND, "q");
+	std::string result;
+	if(!query)
+	{
+		result = webcli->resolveCommand(std::string());
+	}
+	else
+	{
+		result = webcli->resolveCommand(std::string(query));
+	}
+	std::cerr<<query<<" -> "<<result<<std::endl;
+	
+	response = MHD_create_response_from_buffer(0, NULL, MHD_RESPMEM_PERSISTENT);
+	if(!response) { std::cerr<<1<<std::endl; return MHD_NO; }
+
+	if(MHD_add_response_header(response, "Location", result.c_str()) == MHD_NO)
+	{
+		MHD_destroy_response(response);
+		return MHD_NO;
+	}
+
+	return_value = MHD_queue_response(connection, MHD_HTTP_FOUND, response);
+	MHD_destroy_response(response);
+
+	return return_value;
 }
 
 int main(int argc, char**argv)
@@ -47,10 +95,32 @@ int main(int argc, char**argv)
 
 	WebCLI webcli(commands_file, echo);
 
-	std::string line;
-	while(std::getline(std::cin, line))
+	if(enable_http)
 	{
-		std::cout << webcli.resolveCommand(line) << std::endl;
+		MHD_Daemon *daemon;
+		sockaddr_in localhost;
+		memset(&localhost, 0, sizeof(localhost));
+		localhost.sin_family = AF_INET;
+		localhost.sin_addr.s_addr = inet_addr("127.0.0.1");
+		localhost.sin_port = htons(http_port);
+
+		daemon = MHD_start_daemon(MHD_USE_SELECT_INTERNALLY, http_port, NULL, NULL, &http_callback, &webcli, MHD_OPTION_SOCK_ADDR, &localhost, MHD_OPTION_END);
+		if(!daemon)
+		{
+			std::cerr<<"Failed to start http daemon, exiting"<<std::endl;
+			return -1;
+		}
+
+		getchar();
+		MHD_stop_daemon(daemon);
+	}
+	else
+	{
+		std::string line;
+		while(std::getline(std::cin, line))
+		{
+			std::cout << webcli.resolveCommand(line) << std::endl;
+		}
 	}
 
 	return 0;
