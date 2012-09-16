@@ -11,6 +11,8 @@
 # include <sys/socket.h>
 # include <arpa/inet.h>
 # include <netinet/in.h>
+# include <fcntl.h>
+# include <signal.h>
 
 # include <microhttpd.h>
 
@@ -22,6 +24,7 @@ void print_usage(const char *program_name)
 
 	std::cerr<<"\t -h: start http daemon" << std::endl;
 	std::cerr<<"\t -e: if no command was given, just echo back the request" << std::endl;
+	std::cerr<<"\t -d: daemonize (implies -h)" << std::endl;
 	std::cerr<<"\t -p PORT: use PORT for http daemon" << std::endl;
 	std::cerr<<"\t -c FILE: read commadns from FILE" << std::endl;
 }
@@ -62,16 +65,41 @@ int http_callback(void *cls,
 
 	return return_value;
 }
+void daemonize()
+{
+        int i;
+
+        if(getppid()==1) { return; }
+
+        i = fork();
+        if(i < 0) { exit(1); }
+        if(i > 0) { exit(0); }
+ 
+        setsid();
+        for(i = getdtablesize(); i >= 0; --i)
+	{
+		close(i);
+	}
+	i = open("/dev/null",O_RDWR);
+	dup(i);
+	dup(i);
+ 
+        signal(SIGCHLD,SIG_IGN);
+        signal(SIGTSTP,SIG_IGN);
+        signal(SIGTTOU,SIG_IGN);
+        signal(SIGTTIN,SIG_IGN);
+}
 
 int main(int argc, char**argv)
 {
 	bool enable_http = false;
 	bool echo = false;
+	bool enable_daemonize = false;
 	unsigned short http_port = 8023;
 	const char *commands_file = "~/.webcli-commands";
 
 	int opt;
-	while((opt = getopt(argc, argv, "hep:c:")) != -1)
+	while((opt = getopt(argc, argv, "hedp:c:")) != -1)
 	{
 		switch(opt)
 		{
@@ -80,6 +108,10 @@ int main(int argc, char**argv)
 			break;
 		case 'e':
 			echo = true;
+			break;
+		case 'd':
+			enable_http = true;
+			enable_daemonize = true;
 			break;
 		case 'p':
 			http_port = atoi(optarg);
@@ -92,6 +124,8 @@ int main(int argc, char**argv)
 			return -1;
 		}
 	}
+
+	if(enable_daemonize) { daemonize(); }
 
 	wordexp_t exp_result;
 	wordexp(commands_file, &exp_result, 0);	
@@ -114,7 +148,13 @@ int main(int argc, char**argv)
 			return -1;
 		}
 
-		getchar();
+		sigset_t set;
+		sigemptyset(&set);
+		sigaddset(&set, SIGHUP);
+		sigaddset(&set, SIGINT);
+		sigaddset(&set, SIGTERM);
+		sigsuspend(&set);
+
 		MHD_stop_daemon(daemon);
 	}
 	else
