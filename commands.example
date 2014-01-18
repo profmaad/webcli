@@ -1,0 +1,13 @@
+g http://www.google.com/search?q=%s
+ghde http://geizhals.at/deutschland/?fs=%s
+wp http://en.wikipedia.org?search=%s
+wpde http://de.wikipedia.org?search=%s
+leo http://dict.leo.org/?search=%s
+am http://www.amazon.com/s/?field-keywords=%s
+amde http://www.amazon.de/exec/obidos/external-search?keyword=%s&index=blended
+amuk http://www.amazon.co.uk/exec/obidos/external-search?mode=blended&keyword=%s
+wine http://appdb.winehq.org/search.php?sSearchQuery=%s
+gim http://images.google.com/images?q=%s
+gm http://maps.google.com/maps?q=%s
+yt http://www.youtube.com/results?search_type=search_videos&search_sort=relevance&search_query=%s&search=Search
+imdb http://www.imdb.com/find?q=%s
