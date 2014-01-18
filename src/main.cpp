@@ -26,7 +26,7 @@ void print_usage(const char *program_name)
 	std::cerr<<"\t -e: if no command was given, just echo back the request" << std::endl;
 	std::cerr<<"\t -d: daemonize (implies -h)" << std::endl;
 	std::cerr<<"\t -p PORT: use PORT for http daemon" << std::endl;
-	std::cerr<<"\t -c FILE: read commadns from FILE" << std::endl;
+	std::cerr<<"\t -c FILE: read commands from FILE" << std::endl;
 }
 
 int http_callback(void *cls,
